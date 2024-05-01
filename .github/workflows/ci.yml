@@ -1,90 +1,77 @@
-name: CI
-on:
-  - push
-  - pull_request
 jobs:
   Linux:
+    name: JDK ${{ matrix.jdk }}
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+    - continue-on-error: true
+      uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9
+      with:
+        distribution: zulu
+        java-version: '${{ matrix.jdk }}
+
+          17
+
+          '
+    - continue-on-error: true
+      env:
+        JDK_HOME_VARIABLE_NAME: JAVA_HOME_${{ matrix.jdk }}_X64
+        JDK_VERSION: ${{ matrix.jdk }}
+      name: Generate toolchains.xml
+      run: "echo \"\n<toolchains>\n  <toolchain>\n    <type>jdk</type>\n    <provides>\n\
+        \      <id>$JDK_VERSION</id>\n      <version>$JDK_VERSION</version>\n    </provides>\n\
+        \    <configuration>\n      <jdkHome>${!JDK_HOME_VARIABLE_NAME}</jdkHome>\n\
+        \    </configuration>\n  </toolchain>\n</toolchains>\n\" > toolchains.xml\n"
+    - continue-on-error: true
+      name: Build
+      run: "mvn -V -B -e --no-transfer-progress \\\n  verify -Djdk.version=${{ matrix.jdk\
+        \ }} -Dbytecode.version=${{ matrix.jdk }} \\\n  --toolchains=toolchains.xml\n"
     strategy:
       fail-fast: false
       matrix:
         include:
-          - jdk: 8
-          - jdk: 11
-          - jdk: 17
-          - jdk: 21
-    name: JDK ${{ matrix.jdk }}
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
-        with:
-          distribution: 'zulu'
-          java-version: |
-            ${{ matrix.jdk }}
-            17
-      - name: 'Generate toolchains.xml'
-        env:
-          JDK_VERSION: ${{ matrix.jdk }}
-          JDK_HOME_VARIABLE_NAME: JAVA_HOME_${{ matrix.jdk }}_X64
-        run: |
-          echo "
-          <toolchains>
-            <toolchain>
-              <type>jdk</type>
-              <provides>
-                <id>$JDK_VERSION</id>
-                <version>$JDK_VERSION</version>
-              </provides>
-              <configuration>
-                <jdkHome>${!JDK_HOME_VARIABLE_NAME}</jdkHome>
-              </configuration>
-            </toolchain>
-          </toolchains>
-          " > toolchains.xml
-      - name: 'Build'
-        run: |
-          mvn -V -B -e --no-transfer-progress \
-            verify -Djdk.version=${{ matrix.jdk }} -Dbytecode.version=${{ matrix.jdk }} \
-            --toolchains=toolchains.xml
+        - jdk: 8
+        - jdk: 11
+        - jdk: 17
+        - jdk: 21
   Windows:
-    runs-on: windows-2022
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
-        with:
-          distribution: 'zulu'
-          java-version: |
-            6
-            17
-      - name: 'Generate toolchains.xml'
-        env:
-          JDK_VERSION: 6
-          JDK_HOME_VARIABLE_NAME: JAVA_HOME_6_X64
-        shell: bash
-        run: |
-          echo "
-          <toolchains>
-            <toolchain>
-              <type>jdk</type>
-              <provides>
-                <id>$JDK_VERSION</id>
-                <version>$JDK_VERSION</version>
-              </provides>
-              <configuration>
-                <jdkHome>${!JDK_HOME_VARIABLE_NAME}</jdkHome>
-              </configuration>
-            </toolchain>
-          </toolchains>
-          " > toolchains.xml
-      - name: 'Build'
-        shell: bash
-        run: |
-          mvn -V -B -e --no-transfer-progress \
-            verify -Djdk.version=6 -Dbytecode.version=5 \
-            --toolchains=toolchains.xml
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        id: artifact-upload-step
-        with:
-          name: jacoco
-          path: jacoco/target/*.zip
-          if-no-files-found: error
+    - continue-on-error: true
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+    - continue-on-error: true
+      uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9
+      with:
+        distribution: zulu
+        java-version: '6
+
+          17
+
+          '
+    - continue-on-error: true
+      env:
+        JDK_HOME_VARIABLE_NAME: JAVA_HOME_6_X64
+        JDK_VERSION: 6
+      name: Generate toolchains.xml
+      run: "echo \"\n<toolchains>\n  <toolchain>\n    <type>jdk</type>\n    <provides>\n\
+        \      <id>$JDK_VERSION</id>\n      <version>$JDK_VERSION</version>\n    </provides>\n\
+        \    <configuration>\n      <jdkHome>${!JDK_HOME_VARIABLE_NAME}</jdkHome>\n\
+        \    </configuration>\n  </toolchain>\n</toolchains>\n\" > toolchains.xml\n"
+      shell: bash
+    - continue-on-error: true
+      name: Build
+      run: "mvn -V -B -e --no-transfer-progress \\\n  verify -Djdk.version=6 -Dbytecode.version=5\
+        \ \\\n  --toolchains=toolchains.xml\n"
+      shell: bash
+    - continue-on-error: true
+      id: artifact-upload-step
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      with:
+        if-no-files-found: error
+        name: jacoco
+        path: jacoco/target/*.zip
+name: CI
+on:
+  repository_dispatch:
+    types: trigger-ga___ci.yml
